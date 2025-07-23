@@ -1,6 +1,5 @@
 import modal
-import os
-import sys
+
 
 _PYTHON_VERSION = "3.12"
 

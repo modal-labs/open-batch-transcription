@@ -1,8 +1,9 @@
-import pandas as pd
+
 import shutil
 import sys
 from pathlib import Path
 import numpy as np
+import pandas as pd
 
 from app.common import DATASETS_VOLPATH
 
@@ -56,7 +57,7 @@ def distribute_audio(df, num_requests):
         for batch_idx, row_idx in enumerate(batch_order):
             if chunk_starting_idx + row_idx < len(df):
                 batches[batch_idx].append(df.iloc[chunk_starting_idx + row_idx])
-    # Convert lists of rows back to DataFrames
+    # Convert lists of rows DataFrames
     batches = [pd.DataFrame(rows).reset_index(drop=True) if rows else df.iloc[0:0].copy() for rows in batches]
             
     print(f"\nCreated {len(batches)} batches")
