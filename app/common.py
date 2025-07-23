@@ -1,8 +1,19 @@
 import modal
+import os
+import sys
 
 _PYTHON_VERSION = "3.12"
 
 app = modal.App(name="modal-batch-transcription")
+
+dataset_volume = modal.Volume.from_name("transcription-datasets", create_if_missing=True)
+DATASETS_VOLPATH = "/datasets"
+
+model_volume = modal.Volume.from_name("transcription-models", create_if_missing=True)
+MODELS_VOLPATH = "/models"
+
+results_volume = modal.Volume.from_name("transcription-results", create_if_missing=True)
+RESULTS_VOLPATH = "/results"
 
 transcription_image = (
     modal.Image.from_registry(
@@ -11,7 +22,7 @@ transcription_image = (
     .env(
         {
             "HF_HUB_ENABLE_HF_TRANSFER": "1",
-            "HF_HOME": "/hf_cache",
+            "HF_HOME": MODELS_VOLPATH,
             "CXX": "g++",
             "CC": "g++",
         }
@@ -56,11 +67,15 @@ runner_image = (
     .add_local_dir("utils", remote_path="/root/utils")
 )
 
-dataset_volume = modal.Volume.from_name("transcription-datasets", create_if_missing=True)
-DATASETS_VOLPATH = "/datasets"
+class NoStdStreams(object):
+    def __init__(self):
+        self.devnull = open(os.devnull, "w")
 
-model_volume = modal.Volume.from_name("transcription-models", create_if_missing=True)
-MODELS_VOLPATH = "/models"
+    def __enter__(self):
+        self._stdout, self._stderr = sys.stdout, sys.stderr
+        self._stdout.flush(), self._stderr.flush()
+        sys.stdout, sys.stderr = self.devnull, self.devnull
 
-results_volume = modal.Volume.from_name("transcription-results", create_if_missing=True)
-RESULTS_VOLPATH = "/results"
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stdout, sys.stderr = self._stdout, self._stderr
+        self.devnull.close()

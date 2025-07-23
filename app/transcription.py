@@ -38,6 +38,7 @@ MINUTES = 60 # seconds
         MODELS_VOLPATH: model_volume,
         RESULTS_VOLPATH: results_volume,
     },
+    scaledown_window=5,
 )
 class NeMoAsrBatchTranscription():
     _DEFAULT_MODEL_ID = "nvidia/parakeet-tdt-0.6b-v2"
@@ -52,10 +53,6 @@ class NeMoAsrBatchTranscription():
     def setup(self):
 
         self._COMPUTE_DTYPE = torch.bfloat16
-        
-        print(f"MODAL_CLOUD_PROVIDER: {os.environ.get('MODAL_CLOUD_PROVIDER')}")
-        print(f"MODAL_REGION: {os.environ.get('MODAL_REGION')}")
-        print(f"MODAL_ENVIRONMENT: {os.environ.get('MODAL_ENVIRONMENT')}")
 
         self.asr_model = nemo_asr.models.ASRModel.from_pretrained(self.model_id)         
         self.asr_model.to(self._COMPUTE_DTYPE)
@@ -68,12 +65,6 @@ class NeMoAsrBatchTranscription():
 
     @modal.method()
     async def run_inference(self, audio_filepaths):
-        
-        print(f"MODAL_CLOUD_PROVIDER: {os.environ.get('MODAL_CLOUD_PROVIDER')}")
-        print(f"MODAL_REGION: {os.environ.get('MODAL_REGION')}")
-        print(f"MODAL_ENVIRONMENT: {os.environ.get('MODAL_ENVIRONMENT')}")
-
-        print(f"Batch size: {self.gpu_batch_size}")
 
         local_filepaths = [path.replace(ESB_DATASETPATH_MODAL, '/tmp') for path in audio_filepaths]
         filenames = [filepath.split('/')[-1] for filepath in local_filepaths]
@@ -94,11 +85,7 @@ class NeMoAsrBatchTranscription():
         # Process transcriptions
         if isinstance(transcriptions, tuple) and len(transcriptions) == 2:
             transcriptions = transcriptions[0]
-        predictions = [pred.text for pred in transcriptions]
-
-        avg_time = total_time / len(transcriptions)
-        print("Average time:", avg_time)
-    
+        predictions = [pred.text for pred in transcriptions]    
 
         return {
             "num_samples": len(filenames),
@@ -129,9 +116,6 @@ class TranscriptionRunner():
         data_df = pd.read_csv(f"/datasets/{ESB_DATASET_NAME}/esb_full_features.csv")
         dfs = distribute_audio(data_df, cfg.num_requests)
         
-        Path(f"/results/{cfg.job_id}").mkdir(parents=True)
-        results_volume.commit()
-        
         results = []
         start_time = time.perf_counter()
 
@@ -153,8 +137,7 @@ class TranscriptionRunner():
             result['total_runtime'] = total_runtime
             result['job_id'] = cfg.job_id
             result['audio_length_s'] = df['audio_length_s'].tolist()
-            result['references'] = df['references'].tolist()
-            result['original_text'] = df['original_text'].tolist()
+            result['original_text'] = df['text'].tolist()
             result['dataset'] = df['dataset'].tolist()
             result['split'] = df['split'].tolist()
 
@@ -170,7 +153,8 @@ class TranscriptionRunner():
         
         # Calculate metrics
         normalized_predictions = [du.normalizer(pred) for pred in results['transcriptions']]
-        wer = wer_metric.compute(references=results['references'], predictions=normalized_predictions)
+        normalized_references = [du.normalizer(ref) for ref in results['original_text']]
+        wer = wer_metric.compute(references=normalized_references, predictions=normalized_predictions)
         wer = round(100 * wer, 2)
 
         audio_length = sum(results['audio_length_s'])
@@ -189,23 +173,17 @@ class TranscriptionRunner():
     def save_results(self, results, cfg):
         # save the results to a csv
         results_df = pd.DataFrame(results)
-        print(results_df.head())
-        print("Saving results to csv...")
-        print(f"{os.getcwd()}")
-        
-        results_dir = Path(f"{RESULTS_VOLPATH}/results_summary/{cfg.job_id}")
-        results_full_dir = Path(f"{RESULTS_VOLPATH}/results_full/{cfg.job_id}")
+
+        results_summary_dir = Path(f"{RESULTS_VOLPATH}/results_summaries")
+        results_summary_dir.mkdir(parents=True, exist_ok=True)
+        results_df.drop(columns=['transcriptions', 'original_text', 'audio_length_s', 'dataset', 'split'],inplace=False).to_csv(results_summary_dir / f"results_summary_{cfg.job_id}.csv", index=False)
+
+        results_dir = Path(f"{RESULTS_VOLPATH}/results")
         results_dir.mkdir(parents=True, exist_ok=True)
-        results_full_dir.mkdir(parents=True, exist_ok=True)
-        results_df.drop(columns=['transcriptions', 'references', 'original_text'],inplace=False).to_csv(results_dir / f"results_{cfg.job_id}.csv", index=False)
-        results_df.to_csv(results_full_dir / f"results_{cfg.job_id}.csv", index=False)
+        results_df.to_csv(results_dir / f"results_{cfg.job_id}.csv", index=False)
 
     
 
-
-
-
-    
         
         
     
