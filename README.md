@@ -1,6 +1,6 @@
 # Batch Transcription
 
-Transcribe speech 100x faster and 100x cheaper with Modal and [NeMo ASR models](https://github.com/NVIDIA/NeMo/tree/main/nemo/collections/asr).
+Transcribe speech 100x faster and 100x cheaper with Modal and NeMo ASR models.
 
 ### Setup
 
