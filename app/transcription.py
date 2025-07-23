@@ -1,8 +1,8 @@
-import os
 import modal
 from pathlib import Path
 import pandas as pd
 import time
+import logging
 
 from app.common import (
     app, 
@@ -17,6 +17,8 @@ from app.common import (
 )
 from utils.data import ESB_DATASET_NAME, ESB_DATASETPATH_MODAL
 
+MINUTES = 60 # seconds
+
 with transcription_image.imports():
     import nemo.collections.asr as nemo_asr
     import torch
@@ -28,7 +30,7 @@ with transcription_image.imports():
     from utils.data import copy_concurrent
 
 
-MINUTES = 60 # seconds
+
 
 @app.cls(
     image=transcription_image, 
@@ -41,18 +43,21 @@ MINUTES = 60 # seconds
     scaledown_window=5,
 )
 class NeMoAsrBatchTranscription():
-    _DEFAULT_MODEL_ID = "nvidia/parakeet-tdt-0.6b-v2"
-    _DEFAULT_GPU_TYPE = "L40S"
-    _DEFAULT_BATCH_SIZE = 128
-    _DEFAULT_NUM_REQUESTS = 25
-    model_id: str = modal.parameter(default=_DEFAULT_MODEL_ID)
-    gpu_batch_size: int = modal.parameter(default=_DEFAULT_BATCH_SIZE)
-    num_requests: int = modal.parameter(default=_DEFAULT_NUM_REQUESTS)
+    DEFAULT_MODEL_ID = "nvidia/parakeet-tdt-0.6b-v2"
+    DEFAULT_GPU_TYPE = "L40S"
+    DEFAULT_BATCH_SIZE = 128
+    DEFAULT_NUM_REQUESTS = 25
+    model_id: str = modal.parameter(default=DEFAULT_MODEL_ID)
+    gpu_batch_size: int = modal.parameter(default=DEFAULT_BATCH_SIZE)
+    
     
     @modal.enter()
     def setup(self):
 
         self._COMPUTE_DTYPE = torch.bfloat16
+
+        # silence chatty logs from nemo
+        logging.getLogger("nemo_logger").setLevel(logging.CRITICAL)
 
         self.asr_model = nemo_asr.models.ASRModel.from_pretrained(self.model_id)         
         self.asr_model.to(self._COMPUTE_DTYPE)
@@ -76,7 +81,6 @@ class NeMoAsrBatchTranscription():
             if 'canary' in self.model_id:
                 transcriptions = self.asr_model.transcribe(local_filepaths, batch_size=self.gpu_batch_size, verbose=False, pnc='no', num_workers=1)
             else:
-                print("Transcribing...")
                 transcriptions = self.asr_model.transcribe(local_filepaths, batch_size=self.gpu_batch_size, num_workers=1)
 
         total_time = time.perf_counter() - start_time
@@ -109,24 +113,30 @@ with runner_image.imports():
     },
 )
 class TranscriptionRunner():
+    num_requests: int = modal.parameter()
 
     @modal.method()
     def run_transcription(self, cfg):
-        
-        data_df = pd.read_csv(f"/datasets/{ESB_DATASET_NAME}/esb_full_features.csv")
-        dfs = distribute_audio(data_df, cfg.num_requests)
-        
-        results = []
+
+        print(f"Starting transcription job: {cfg.job_id}...")
         start_time = time.perf_counter()
+        loading_time = time.perf_counter()
+        data_df = pd.read_csv(f"/datasets/{ESB_DATASET_NAME}/esb_full_features.csv")
+        dfs = distribute_audio(data_df, self.num_requests)
+        loading_time = time.perf_counter() - loading_time
+        print(f"Loading time: {loading_time} seconds")
+
+        results = []
+        
 
         nemo_transcription = NeMoAsrBatchTranscription.with_options(
             gpu=cfg.gpu_type,
         )(
             model_id=cfg.model_id, 
             gpu_batch_size=cfg.gpu_batch_size,
-            num_requests=cfg.num_requests,
         )
 
+        print("Running inference...")
         for result in nemo_transcription.run_inference.map([df['filepath'].tolist() for df in dfs]):
             results.append(result)
         
@@ -141,11 +151,14 @@ class TranscriptionRunner():
             result['dataset'] = df['dataset'].tolist()
             result['split'] = df['split'].tolist()
 
+        print("Scoring results...")
         scored_results = []
-        for result in results:
-             scored_results.append(self.score_call.local(result))
+        for scored_result in self.score_call.map(results):
+            scored_results.append(scored_result)
 
         self.save_results(scored_results, cfg)
+
+        print(f"Transcription job {cfg.job_id} complete.")
     
     @modal.method()
     def score_call(self, results):
@@ -160,9 +173,6 @@ class TranscriptionRunner():
         audio_length = sum(results['audio_length_s'])
         rtfx = audio_length / results['total_time']
         rtfx = round(rtfx, 2)
-
-        print("RTFX:", rtfx)
-        print("WER:", wer, "%")
 
         results['wer'] = wer
         results['rtfx'] = rtfx

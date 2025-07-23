@@ -66,16 +66,3 @@ runner_image = (
         )
     .add_local_dir("utils", remote_path="/root/utils")
 )
-
-class NoStdStreams(object):
-    def __init__(self):
-        self.devnull = open(os.devnull, "w")
-
-    def __enter__(self):
-        self._stdout, self._stderr = sys.stdout, sys.stderr
-        self._stdout.flush(), self._stderr.flush()
-        sys.stdout, sys.stderr = self.devnull, self.devnull
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        sys.stdout, sys.stderr = self._stdout, self._stderr
-        self.devnull.close()

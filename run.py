@@ -41,25 +41,25 @@ def batch_transcription(*args):
     parser.add_argument(
         "--model_id", 
         type=str, 
-        default=NeMoAsrBatchTranscription._DEFAULT_MODEL_ID, 
+        default=NeMoAsrBatchTranscription.DEFAULT_MODEL_ID, 
         help="Model identifier. Should be loadable with NVIDIA NeMo.",
     )
     parser.add_argument(
         "--gpu-type",
         type=str,
-        default=NeMoAsrBatchTranscription._DEFAULT_GPU_TYPE,
+        default=NeMoAsrBatchTranscription.DEFAULT_GPU_TYPE,
         help="The GPU type to run the pipeline on.",
     )
     parser.add_argument(
         "--gpu-batch-size", 
         type=int, 
-        default=NeMoAsrBatchTranscription._DEFAULT_BATCH_SIZE, 
+        default=NeMoAsrBatchTranscription.DEFAULT_BATCH_SIZE, 
         help="Number of samples to go through each streamed batch.",
     )
     parser.add_argument(
         "--num-requests",
         type=int,
-        default=NeMoAsrBatchTranscription._DEFAULT_NUM_REQUESTS,
+        default=NeMoAsrBatchTranscription.DEFAULT_NUM_REQUESTS,
         help="Number of calls to make to the run_inference_from_archive method.",
     )
     parser.add_argument(
@@ -79,5 +79,5 @@ def batch_transcription(*args):
     print("Job Config:")
     print(cfg)
     
-    runner = TranscriptionRunner()
+    runner = TranscriptionRunner(num_requests=cfg.num_requests)
     runner.run_transcription.remote(cfg)
