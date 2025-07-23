@@ -47,18 +47,14 @@ def distribute_audio(df, num_requests):
         print("Error: 'audio_length_s' column not found in dataframe")
         return []
     
+    df = df.sample(frac=1).reset_index(drop=True)
+    # split the DataFrame into `num_requests` batches of (roughly) equal size:
+    batches = np.array_split(df, num_requests)
 
-    df = df.sort_values('audio_length_s', ascending=False).reset_index(drop=True)
+    assert len(batches) == num_requests, f"Expected {num_requests} batches, got {len(batches)}"
 
-    # Distribute rows in an interleaved (round-robin) fashion across batches
-    batches = [[] for _ in range(num_requests)]
-    for chunk_starting_idx in np.arange(0,len(df), num_requests):
-        batch_order = np.random.permutation(num_requests)
-        for batch_idx, row_idx in enumerate(batch_order):
-            if chunk_starting_idx + row_idx < len(df):
-                batches[batch_idx].append(df.iloc[chunk_starting_idx + row_idx])
-    # Convert lists of rows DataFrames
-    batches = [pd.DataFrame(rows).reset_index(drop=True) if rows else df.iloc[0:0].copy() for rows in batches]
+    # sort batches by audio length
+    batches = [batch.sort_values('audio_length_s', ascending=False).reset_index(drop=True) for batch in batches]
             
     print(f"\nCreated {len(batches)} batches")
     return batches
