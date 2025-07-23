@@ -68,3 +68,7 @@ Results are saved to the `asr-results` Modal Volume in two formats:
 - **WER**: Word Error Rate (%) calculated using normalized text for one request
 - **RTFX**: Real-time factor (audio duration / processing time) for one request
 - **Total Runtime**: End-to-end job execution time for whole job
+
+### `normalizer`
+
+The `normalizer` module in this repo used to process text and score WER is pulled from the [HuggingFace ASR Leaderboard](https://github.com/huggingface/open_asr_leaderboard/tree/main/normalizer).
