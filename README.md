@@ -1,6 +1,6 @@
 # Batch Transcription
 
-Transcribe speech 100x faster and 100x cheaper with Modal and open models.
+Transcribe speech 100x faster and 100x cheaper with Modal and [NeMo ASR models](https://github.com/NVIDIA/NeMo/tree/main/nemo/collections/asr).
 
 ### Setup
 
@@ -12,16 +12,20 @@ Transcribe speech 100x faster and 100x cheaper with Modal and open models.
 
 ## Models
 
-- **Parakeet TDT 0.6B** (default): Hyperfast, English only transcription
-- **Canary models**: Just regular fast multilingual transcription
+Any [NeMo ASR](https://github.com/NVIDIA/NeMo/tree/main/nemo/collections/asr) model should work. Though it may be necessary to handle model specific kwargs to `transcribe`.
 
-The first run for each model will incur a small latency cost to download the model to cache. Subsequent runs will load the model from the Modal Volume `transcription-models`.
+We've tested the following models:
+- **[nvidia/parakeet-tdt-0.6b-v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2)** (default): Hyperfast, English only transcription
+- **[nvidia/canary-1b-flash](https://huggingface.co/nvidia/canary-1b-flash)**: Just regular fast multilingual transcription
+
+### Model weight caching
+The first run for each model will incur a small latency cost to download the weights to cache. Subsequent runs will load the weights from the Modal Volume: `transcription-models`.
 
 ## Usage
 
 ### Download ESB Test Datasets
 
-First stage the data (one-time setup) on the Modal Volume `transcription-datasets`:
+First stage the data (one-time setup) on the Modal Volume: `transcription-datasets`:
 
 ```bash
 modal run -m run::stage_data
@@ -59,7 +63,7 @@ modal run -m run::batch_transcription \
 
 ## Output
 
-Results are saved to the `transcription-results` Modal Volume in two formats:
+Results are saved to the  Modal Volume, `transcription-results`, in two formats:
 
 1. **Summary**: `/results_summaries/results_summary_{job_id}.csv`
    - Aggregated metrics (WER, RTFX, timing)
