@@ -20,7 +20,7 @@ Transcribe speech 100x faster and 100x cheaper with Modal and open models.
 First stage the data (one-time setup):
 
 ```bash
-modal run -m run.py::stage_data
+modal run -m run::stage_data
 ```
 
 This downloads audio files from the HuggingFace ESB test subsets: AMI, Earnings22, GigaSpeech, LibriSpeech (clean/other), SPGISpeech, TEDLIUM, VoxPopuli.
@@ -28,13 +28,13 @@ This downloads audio files from the HuggingFace ESB test subsets: AMI, Earnings2
 ### Run Batch Transcription
 
 ```bash
-modal run run.py::batch_transcription
+modal run -m run::batch_transcription
 ```
 
 Or run with arguments:
 
 ```bash
-modal run run.py::batch_transcription \
+modal run -m run::batch_transcription \
   --model_id nvidia/parakeet-tdt-0.6b-v2 \
   --gpu-type L40S \
   --gpu-batch-size 128 \
