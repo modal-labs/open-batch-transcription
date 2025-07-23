@@ -2,11 +2,13 @@
 
 Transcribe speech 100x faster and 100x cheaper with Modal and open models.
 
-### Requirements
+### Setup
 
-- `modal` installed in your current Python virtual environment (`pip install modal`)
-- A [Modal](http://modal.com/) account (`modal setup`)
-- A Modal token set up in your environment (`modal token new`)
+- Clone this repo
+- Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Build the virtual environment: `uv sync`
+- Setup your [Modal](http://modal.com/) account (`modal setup`)
+- Add a Modal API token to your environment if necessary (`modal token new`)
 
 ## Models
 
