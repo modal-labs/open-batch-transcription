@@ -13,11 +13,13 @@ Transcribe speech 100x faster and 100x cheaper with Modal and open models.
 - **Parakeet TDT 0.6B** (default): Hyperfast, English only transcription
 - **Canary models**: Just regular fast multilingual transcription
 
+The first run for each model will incur a small latency cost to download the model to cache. Subsequent runs will load the model from the Modal Volume `transcription-models`.
+
 ## Usage
 
 ### Download ESB Test Datasets
 
-First stage the data (one-time setup):
+First stage the data (one-time setup) on the Modal Volume `transcription-datasets`:
 
 ```bash
 modal run -m run::stage_data
@@ -55,12 +57,12 @@ modal run -m run::batch_transcription \
 
 ## Output
 
-Results are saved to the `asr-results` Modal Volume in two formats:
+Results are saved to the `transcription-results` Modal Volume in two formats:
 
-1. **Summary**: `/results/results_summaries/results_summary_{job_id}.csv`
+1. **Summary**: `/results_summaries/results_summary_{job_id}.csv`
    - Aggregated metrics (WER, RTFX, timing)
    
-2. **Detailed**: `/results/results/{job_id}.csv`
+2. **Detailed**: `/results/{job_id}.csv`
    - Individual transcriptions, ground truth, dataset info
 
 ### Metrics
