@@ -124,7 +124,7 @@ class TranscriptionRunner():
         data_df = pd.read_csv(f"/datasets/{ESB_DATASET_NAME}/esb_full_features.csv")
         dfs = distribute_audio(data_df, self.num_requests)
         batch_creation_time = time.perf_counter() - batch_start_creation_time
-        print(f"Batch creation time: {loading_time} seconds")
+        print(f"Batch creation time: {batch_creation_time} seconds")
 
         results = []
         
