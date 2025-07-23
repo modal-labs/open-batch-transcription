@@ -120,11 +120,11 @@ class TranscriptionRunner():
 
         print(f"Starting transcription job: {cfg.job_id}...")
         start_time = time.perf_counter()
-        loading_time = time.perf_counter()
+        batch_start_creation_time = time.perf_counter()
         data_df = pd.read_csv(f"/datasets/{ESB_DATASET_NAME}/esb_full_features.csv")
         dfs = distribute_audio(data_df, self.num_requests)
-        loading_time = time.perf_counter() - loading_time
-        print(f"Loading time: {loading_time} seconds")
+        batch_creation_time = time.perf_counter() - batch_start_creation_time
+        print(f"Batch creation time: {loading_time} seconds")
 
         results = []
         
