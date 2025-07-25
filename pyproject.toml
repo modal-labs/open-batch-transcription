@@ -1,7 +1,7 @@
 [project]
 name = "batch-asr"
 version = "0.1.0"
-description = "Add your description here"
+description = "Transcribe speech 100x faster and 100x cheaper with Modal and NeMo ASR models."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
